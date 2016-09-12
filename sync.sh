@@ -37,7 +37,7 @@ fi
 self=$(basename "$0")
 
 BACKUP_DATE=$(date '+%Y-%m-%d_%Hh%Mm%Ss')
-APP_ROOT="~/.local/rsync-backup"
+APP_ROOT="${HOME}/.local/rsync-backup"
 LOG_FILE_PATH="$APP_ROOT/logs/backup-${BACKUP_DATE}.log"
 PRINT_USAGE=true
 RSYNC_DRY_RUN_ARGUMENTS='--dry-run --itemize-changes'
@@ -58,6 +58,7 @@ rsync_log_file=
 ssh_user=$(whoami)
 ssh_server=
 ssh_ident=
+notify=false
 
 usage() {
 	echo -e
@@ -128,6 +129,10 @@ error() {
 
 	>&2 message "${C_ERROR}  [ERROR]${C_RESET} ${1}"
 
+    if "${notify}"; then
+        notify-send --urgency=critical --app-name="Sync" "Sync Error" "${1}"
+    fi
+
 	if [[ ${3} ]]; then
 		>&2 usage
 	fi
@@ -156,6 +161,10 @@ mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
 # print usage if nothing provided
 [[ "$#" -eq "0" ]] && usage && exit
 
+if hash notify-send 2> /dev/null; then
+    notify=true
+fi
+
 # parse arguments
 while (($#)); do
 	case "$1" in
@@ -169,6 +178,9 @@ while (($#)); do
 		--dry-run)
 			verbose=true
 			rsync_dry_run=${RSYNC_DRY_RUN_ARGUMENTS}
+			;;
+		--no-notify)
+			notify=false
 			;;
 		-h|--help)
 			usage
@@ -235,19 +247,19 @@ while (($#)); do
 done
 
 [[ "${#rsync_sources[@]}" -eq "0" ]] \
-	|| error "No sources provided" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
+	&& error "No sources provided" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 
 [[ -z "$identifier" ]] \
-	|| error "Empty identifier provided" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
+	&& error "Empty identifier provided" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 
 [[ -z "$ssh_user" ]] \
-	|| error "Empty ssh user provided" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
+	&& error "Empty ssh user provided" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 
 [[ -z "$ssh_server" ]] \
-	|| error "Must provide an ssh server" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
+	&& error "Must provide an ssh server" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 
 [[ -z "$target" ]] \
-	|| error "Must provide a remote target" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
+	&& error "Must provide a remote target" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 
 # Create the connection string.
 ssh_connect="${ssh_user}@${ssh_server}"
@@ -264,7 +276,7 @@ command_sync() {
 	rsync \
 		${rsync_dry_run} \
 		${rsync_verbose} \
-		${rsync_log_file} \
+		"${rsync_log_file}" \
 		--progress \
 		--archive \
 		--compress \
@@ -276,6 +288,16 @@ command_sync() {
 		--rsh="ssh ${ssh_ident} ${ssh_port}" \
 		"${rsync_sources[@]}" \
 		"${ssh_connect}:${target}/${identifier}"
+    
+    if [[ "$?" -eq "0" ]]; then
+        message "Sync complete"
+
+        if "${notify}"; then
+            notify-send --urgency=low --app-name="Sync" "Sync" "Sync completed"
+        fi
+    else
+        error "Sync incomplete"
+    fi
 }
 
 command_sync
