@@ -30,6 +30,8 @@ A wrapper around rsync to create a remote backup of any set of files.
     
       --verbose, -v     Show more verbose output of actions performed.
     
+      --no-notify       Disable notifications.
+
       --no-color        Disable colored output.
     
       --dry-run         Run rsync in dry run mode. Providing this options also assumes --verbose.
@@ -53,7 +55,13 @@ Syncs my home directory to a drive mounted at `192.168.1.100:/Volumes/Data/Sync`
         --exclude-file /home/mitmaro/.local/rsync-backup/exclude-list.lst \
         /home/mitmaro
 
-## Use Case
+### Cron job
+
+Run `crontab -e` and add a line similar to:
+
+    15 */4 * * * /path/to/backup/sync.sh --log-to-file -t /path/to/backup --ssh-server hostname --ssh-ident /path/to/ssh/key --include-file include-list.lst --exclude-file exclude-list.lst /path/to/sync
+
+## Use case
 
 There are few cloud backup services that support Linux with had the features that I was looking for and for a decent
 price. I also really liked the offering that [Sync.com](https://www.sync.com/?_sync_refer=33cbaa0) offered.
@@ -61,6 +69,15 @@ price. I also really liked the offering that [Sync.com](https://www.sync.com/?_s
 not however offer a Linux client. I created this script to sync, via a cron job, the files from my Linux laptop to an
 external drive attached to an I had an old Apple laptop kicking around. The old laptop is running the Sync.com client
 and syncs my files to Sync.com.
+
+## FAQ
+
+#### Notifications not shown with cron.
+
+I've had luck with adding the following to the top of the crontab.
+
+    DISPLAY=:0.0
+    XAUTHORITY=/home/user/.Xauthority
 
 ## License
 

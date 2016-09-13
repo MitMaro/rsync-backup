@@ -81,6 +81,8 @@ usage() {
 	echo -e
 	echo -e "  $(highlight "--verbose, -v")     Show more verbose output of actions performed."
 	echo -e
+	echo -e "  $(highlight "--no-notify")       Disable notifications."
+	echo -e
 	echo -e "  $(highlight "--no-color")        Disable colored output."
 	echo -e
 	echo -e "  $(highlight "--dry-run")         Run rsync in dry run mode. Providing this options also assumes $(highlight "--verbose")."
