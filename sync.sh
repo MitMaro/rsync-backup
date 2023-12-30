@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# constants
 EXIT_CODE_GENERAL=1
 EXIT_CODE_INVALID_STATE=2
 EXIT_CODE_INVALID_ARGUMENT=3
@@ -34,7 +33,7 @@ if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
 	C_STATUS="\033[1m"
 fi
 
-self=$(basename "$0")
+self="$(basename "$0")"
 
 BACKUP_DATE=$(date '+%Y-%m-%d_%Hh%Mm%Ss')
 APP_ROOT="${HOME}/.local/rsync-backup"
@@ -49,13 +48,13 @@ index=1
 verbose=false
 log_to_file=false
 rsync_sources=()
-identifier=$(hostname)
+identifier="$(hostname)"
 rsync_exclude_file=
 rsync_include_file=
 rsync_dry_run=
 rsync_verbose=
 rsync_log_file=
-ssh_user=$(whoami)
+ssh_user="$(whoami)"
 ssh_server=
 ssh_ident=
 notify=false
@@ -98,31 +97,31 @@ usage() {
 }
 
 highlight() {
-	echo "${C_HIGHLIGHT}${@}${C_RESET}"
+	echo "${C_HIGHLIGHT}$*${C_RESET}"
 }
 
 message() {
-	message=$(date '+%Y/%m/%d %H:%M:%S')
+	message="$(date '+%Y/%m/%d %H:%M:%S')"
 	message="[${C_LOG_DATE}${message}${C_RESET}] $*"
 	if ${log_to_file}; then
-		echo "${message}" >> ${LOG_FILE_PATH}
+		echo "${message}" >> "${LOG_FILE_PATH}"
 	else
 		echo -e "${message}"
 	fi
 }
 
 info_message() {
-	message "${C_INFO}   [INFO]${C_RESET} ${@}"
+	message "${C_INFO}   [INFO]${C_RESET} $*"
 }
 
 verbose_message() {
 	if ${verbose}; then
-		message "${C_VERBOSE}[VERBOSE]${C_RESET} ${@}"
+		message "${C_VERBOSE}[VERBOSE]${C_RESET} $*"
 	fi
 }
 
 warning() {
-	message "${C_WARNING}[WARNING]${C_RESET} ${@}"
+	message "${C_WARNING}[WARNING]${C_RESET} $*"
 }
 
 error() {
@@ -131,9 +130,9 @@ error() {
 
 	>&2 message "${C_ERROR}  [ERROR]${C_RESET} ${1}"
 
-    if "${notify}"; then
-        notify-send --urgency=critical --app-name="Sync" "Sync Error" "${1}"
-    fi
+	if "${notify}"; then
+		notify-send --urgency=critical --app-name="Sync" "Sync Error" "${1}"
+	fi
 
 	if [[ ${3} ]]; then
 		>&2 usage
@@ -164,7 +163,7 @@ mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
 [[ "$#" -eq "0" ]] && usage && exit
 
 if hash notify-send 2> /dev/null; then
-    notify=true
+	notify=true
 fi
 
 # parse arguments
@@ -267,11 +266,12 @@ done
 ssh_connect="${ssh_user}@${ssh_server}"
 
 verbose_message "Checking SSH connection"
-ssh -q -o 'BatchMode=yes' -o 'ConnectTimeout 10' ${ssh_ident} ${ssh_port} ${ssh_connect} exit > /dev/null \
+ssh -q -o 'BatchMode=yes' -o 'ConnectTimeout 10' "${ssh_ident}" "${ssh_port}" "${ssh_connect}" exit > /dev/null \
 	|| error "SSH connection to '${ssh_connect}' failed."
 
 verbose_message "Creating backup directory"
-ssh ${ssh_ident} ${ssh_port} ${ssh_connect} "mkdir -p ${target}/${identifier}" \
+# shellcheck disable=SC2029
+ssh "${ssh_ident}" "${ssh_port}" "${ssh_connect}" "mkdir -p ${target}/${identifier}" \
 	|| error "Could not create ${target}/${identifier} on ${ssh_server}"
 
 command_sync() {
@@ -290,16 +290,16 @@ command_sync() {
 		--rsh="ssh ${ssh_ident} ${ssh_port}" \
 		"${rsync_sources[@]}" \
 		"${ssh_connect}:${target}/${identifier}"
-    
-    if [[ "$?" -eq "0" ]]; then
-        message "Sync complete"
 
-        if "${notify}"; then
-            notify-send --urgency=low --app-name="Sync" "Sync" "Sync completed"
-        fi
-    else
-        error "Sync incomplete"
-    fi
+	if [[ "$?" -eq "0" ]]; then
+		message "Sync complete"
+
+		if "${notify}"; then
+			notify-send --urgency=low --app-name="Sync" "Sync" "Sync completed"
+		fi
+	else
+		error "Sync incomplete"
+	fi
 }
 
 command_sync
