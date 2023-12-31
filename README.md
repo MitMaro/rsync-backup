@@ -18,7 +18,7 @@ This script will always back up the following:
 The default location the script will install is to `$HOME/backup.sh`, this can be changed by using the `BACKUP_INSTALL_LOCATION`.
 
 ```shell
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash install
+curl -o- https://raw.githubusercontent.com/MitMaro/rsync-backup/master/backup.sh | bash -s -- install
 ```
 
 ## Update
