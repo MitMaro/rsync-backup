@@ -145,13 +145,6 @@ argument_error() {
 	error "Unexpected argument: $(highlight "${@}")" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 }
 
-# check for required commands
-command -v rsync &> /dev/null \
-	|| error "rsync command wasn't found; please install and ensure it's on the PATH" ${EXIT_CODE_INVALID_STATE}
-
-command -v ssh &> /dev/null \
-	|| error "ssh command wasn't found; please install and ensure it's on the PATH" ${EXIT_CODE_INVALID_STATE}
-
 # print usage if nothing provided
 [[ "$#" -eq "0" ]] && usage && exit
 
@@ -236,6 +229,18 @@ while (($#)); do
 	shift
 done
 
+# ensure APP_ROOT
+verbose_message "Ensuring that ${APP_ROOT} exists"
+mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
+mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
+
+# check for required commands
+command -v rsync &> /dev/null \
+	|| error "rsync command wasn't found; please install and ensure it's on the PATH" ${EXIT_CODE_INVALID_STATE}
+
+command -v ssh &> /dev/null \
+	|| error "ssh command wasn't found; please install and ensure it's on the PATH" ${EXIT_CODE_INVALID_STATE}
+
 # anything left should be treated as sources
 while (($#)); do
 	rsync_sources[$index]="$1"
@@ -257,11 +262,6 @@ done
 
 [[ -z "$target" ]] \
 	&& error "Must provide a remote target" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
-
-# ensure APP_ROOT
-verbose_message "Ensuring that ${APP_ROOT} exists"
-mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
-mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
 
 # Create the connection string.
 ssh_connect="${ssh_user}@${ssh_server}"
