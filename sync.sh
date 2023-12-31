@@ -30,7 +30,7 @@ fi
 
 self="$(basename "$0")"
 
-BACKUP_DATE="$(date '+%Y-%m-%d_%Hh%Mm%Ss')"
+BACKUP_DATE="$(date '+%Y-%m-%d')"
 APP_ROOT="${HOME}/.local/rsync-backup"
 LOG_FILE_PATH="${APP_ROOT}/logs/backup-${BACKUP_DATE}.log"
 PRINT_USAGE=true
@@ -99,7 +99,7 @@ highlight() {
 }
 
 message() {
-	message="$(date '+%Y/%m/%d')"
+	message="$(date '+%Y/%m/%d %H:%M:%S')"
 	message="[${C_LOG_DATE}${message}${C_RESET}] $*"
 	if ${log_to_file}; then
 		echo "${message}" >> "${LOG_FILE_PATH}"
