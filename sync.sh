@@ -99,7 +99,7 @@ highlight() {
 }
 
 message() {
-	message="$(date '+%Y/%m/%d %H:%M:%S')"
+	message="$(date '+%Y/%m/%d')"
 	message="[${C_LOG_DATE}${message}${C_RESET}] $*"
 	if ${log_to_file}; then
 		echo "${message}" >> "${LOG_FILE_PATH}"
