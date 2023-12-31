@@ -176,7 +176,7 @@ error() {
 }
 
 check_update() {
-	git_root="$(dirname "${PWD}/${BASH_SOURCE[0]}")/backup"
+	git_root="$(dirname "${BASH_SOURCE[0]}")"
 #	git_root="/home/mitmaro/code/active/rsync-backup/test/backup/"
 
 	if ! git -C "$git_root" rev-parse 2> /dev/null; then
