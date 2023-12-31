@@ -230,10 +230,6 @@ while (($#)); do
 done
 
 if ${log_to_file}; then
-	# ensure APP_ROOT
-	verbose_message "Ensuring that ${APP_ROOT} exists"
-	mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
-	verbose_message "Ensuring that ${LOG_FILE_PATH} exists"
 	mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
 	touch "${LOG_FILE_PATH}" || error "Error creating ${LOG_FILE_PATH}"
 fi
