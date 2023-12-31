@@ -10,32 +10,33 @@ BACKUP_DATE="$(date '+%Y-%m-%d')"
 APP_ROOT="${HOME}/.local/rsync-backup"
 LOG_FILE_PATH="${APP_ROOT}/logs/backup-${BACKUP_DATE}.log"
 PRINT_USAGE=true
-RSYNC_DRY_RUN_ARGUMENTS='--dry-run --itemize-changes'
-RSYNC_VERBOSE_ARGUMENTS='--verbose'
-RSYNC_LOG_FILE_ARGUMENTS="--log-file=${LOG_FILE_PATH}"
-RSYNC_RELATIVE_ARGUMENTS='--relative'
+RSYNC_DRY_RUN_ARGUMENTS=( --dry-run --itemize-changes )
+RSYNC_VERBOSE_ARGUMENTS=( --verbose )
+RSYNC_LOG_FILE_ARGUMENTS=( --log-file="${LOG_FILE_PATH}" )
+RSYNC_RELATIVE_ARGUMENTS=( --relative )
 GIT_REPO="https://github.com/MitMaro/rsync-backup.git"
 
 # define variables
 index=1
 verbose=false
 log_to_file=false
-rsync_sources=()
 identifier="$(hostname)"
-rsync_exclude_file=
-rsync_include_file=
-rsync_dry_run=
-rsync_verbose=
-rsync_log_file=
 ssh_user="$(whoami)"
 ssh_server=
-ssh_ident=
+
+declare -a rsync_sources=()
+declare -a rsync_exclude_file=()
+declare -a rsync_include_file=()
+declare -a rsync_dry_run=()
+declare -a rsync_verbose=()
+declare -a rsync_log_file=()
+declare -a ssh_port=()
+declare -a ssh_ident=()
 
 self="$(basename "$0")"
 script_path="$PWD/$self"
 
 reset_colors() {
-
 	C_RESET=''
 	C_LOG_DATE=''
 	C_HIGHLIGHT=''
@@ -156,7 +157,7 @@ error() {
 		export BACKUP_SERVER_IP=
 		export BACKUP_IDENTIFIER=
 		export BACKUP_SSH_USER=root
-		export BACKUP_IDENT_FILE=id_ed25519
+		export BACKUP_IDENT_FILE="$HOME/.ssh/id_ed25519"
 		export BACKUP_PATHS=(
 		)
 
@@ -200,17 +201,17 @@ sync() {
 		case "$1" in
 			-v|--verbose)
 				verbose=true
-				rsync_verbose=${RSYNC_VERBOSE_ARGUMENTS}
+				rsync_verbose=( "${RSYNC_VERBOSE_ARGUMENTS[@]}" )
 				;;
 			--no-color)
 				reset_colors
 				;;
 			--dry-run)
 				verbose=true
-				rsync_dry_run=${RSYNC_DRY_RUN_ARGUMENTS}
+				rsync_dry_run=( "${RSYNC_DRY_RUN_ARGUMENTS[@]}" )
 				;;
 			--relative)
-				rsync_relative=${RSYNC_RELATIVE_ARGUMENTS}
+				rsync_relative=( "${RSYNC_RELATIVE_ARGUMENTS[@]}" )
 				;;
 			-h|--help)
 				usage
@@ -219,7 +220,7 @@ sync() {
 			--log-to-file)
 				message "Logging to ${LOG_FILE_PATH}"
 				reset_colors # no colors for log files
-				rsync_log_file=${RSYNC_LOG_FILE_ARGUMENTS}
+				rsync_log_file=( "${RSYNC_LOG_FILE_ARGUMENTS[@]}" )
 				log_to_file=true
 				;;
 			-t|--target)
@@ -231,7 +232,7 @@ sync() {
 				shift
 				;;
 			--ssh-port)
-				ssh_port="-p $2"
+				ssh_port=( -p "$2" )
 				shift
 				;;
 			--ssh-user)
@@ -243,15 +244,15 @@ sync() {
 				shift
 				;;
 			--ssh-ident)
-				ssh_ident="-i $2"
+				ssh_ident=( -i "$2")
 				shift
 				;;
 			--exclude-file)
-				rsync_exclude_file="--exclude-from=$2"
+				rsync_exclude_file=( --exclude-from="$2" )
 				shift
 				;;
 			--include-file)
-				rsync_include_file="--include-from=$2"
+				rsync_include_file=( --include-from="$2" )
 				shift
 				;;
 			--)
@@ -307,31 +308,31 @@ sync() {
 	ssh_connect="${ssh_user}@${ssh_server}"
 
 	verbose_message "Checking SSH connection"
-	# shellcheck disable=SC2086
-	ssh -q -o 'BatchMode=yes' -o 'ConnectTimeout 10' ${ssh_ident} ${ssh_port} ${ssh_connect} exit > /dev/null \
+	ssh -q -o 'BatchMode=yes' -o 'ConnectTimeout 10'  "${ssh_ident[@]}" "${ssh_port[@]}" "${ssh_connect}" exit > /dev/null \
 		|| error "SSH connection to '${ssh_connect}' failed."
 
 	verbose_message "Creating backup directory"
 	# shellcheck disable=SC2029
-	# shellcheck disable=SC2086
-	ssh ${ssh_ident} ${ssh_port} ${ssh_connect} "mkdir -p ${target}/${identifier}" \
+	ssh "${ssh_ident[@]}" "${ssh_port[@]}" "${ssh_connect}" "mkdir -p '${target}/${identifier}'" \
 		|| error "Could not create ${target}/${identifier} on ${ssh_server}"
 
-	# shellcheck disable=SC2086
+	rsync_ssh_command=( ssh "${ssh_ident[@]}" "${ssh_port[@]}" )
+
+	# shellcheck disable=SC2145
 	rsync \
-		${rsync_dry_run} \
-		${rsync_verbose} \
-		${rsync_log_file} \
+		"${rsync_dry_run[@]}" \
+		"${rsync_verbose[@]}" \
+		"${rsync_log_file[@]}" \
 		--progress \
 		--archive \
 		--compress \
 		--human-readable \
 		--delete \
 		--delete-excluded \
-		${rsync_relative} \
-		${rsync_include_file} \
-		${rsync_exclude_file} \
-		--rsh="ssh ${ssh_ident} ${ssh_port}" \
+		"${rsync_relative[@]}" \
+		"${rsync_include_file[@]}" \
+		"${rsync_exclude_file[@]}" \
+		--rsh="${rsync_ssh_command[@]}" \
 		"${rsync_sources[@]}" \
 		"${ssh_connect}:${target}/${identifier}"
 
@@ -358,7 +359,7 @@ main() {
 		&& error "Empty BACKUP_SERVER_IP environment variable provided" ${EXIT_CODE_INVALID_ARGUMENT} false
 
 	SSH_USER="${BACKUP_SSH_USER:-root}"
-	IDENT_FILE="${BACKUP_IDENT_FILE:-id_ed25519}"
+	IDENT_FILE="${BACKUP_IDENT_FILE:-"/root/.ssh/id_ed25519"}"
 	IDENTIFIER="$BACKUP_IDENTIFIER"
 	IP="$BACKUP_SERVER_IP"
 
@@ -378,7 +379,7 @@ main() {
 	BACKUP_PATHS+=( "/etc/cron.d/backup" )
 
 	for p in "${BACKUP_PATHS[@]}"; do
-		sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "/root/.ssh/$IDENT_FILE" --target /root/backups/ "$args" "$p"
+		sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target /root/backups/ "$@" "$p"
 	done
 }
 
