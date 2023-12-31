@@ -1,83 +1,82 @@
-# Rsync Backup
+# Rsync Backup Script
 
 [![GitHub license](https://img.shields.io/badge/license-ISC-blue.svg)](https://raw.githubusercontent.com/MitMaro/rsync-backup/master/LICENSE.md)
 
-A wrapper around rsync to create a remote backup of any set of files.
+A wrapper around rsync to create a remote backup of any set of files on a schedule.
+
+## Default files
+
+This script will always back up the following:
+
+- `$HOME/README.md`
+- `$HOME/.ssh`
+- `/etc/cron.d/backup`
+- The installed script (default: `$HOME/backup.sh`)
 
 ## Install
 
-    git clone https://github.com/MitMaro/rsync-backup.git /path/to/install/location
-    alias rsync-backup="/path/to/install/location/sync.sh"
+The default location the script will install is to `$HOME/backup.sh`, this can be changed by using the `BACKUP_INSTALL_LOCATION`.
+
+```shell
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash install
+```
+
+## Update
+
+The script will automatically pull updates from GitHub.
+
+To manually update, from the project directory:
+
+```shell
+git fetch origin && git reset --hard origin/master
+``` 
 
 ## Usage
 
-    rsync backup
-    
-    Usage: rsync-backup [options] <src, [src...]>
-    
-    Options:
-      --target, -t      The directory on the target to copy files. (required)
-    
-      --ssh-server      The SSH server. (required)
-    
-      --identifier, -i  A unique identifier for this computer. Default: hostname
-    
-      --ssh-port        The SSH connection port.
-    
-      --ssh-user        The SSH user. Default: current user
-    
-      --ssh-ident       The SSH key to use.
-    
-      --verbose, -v     Show more verbose output of actions performed.
-    
-      --no-notify       Disable notifications.
+The following environment variables are available:
 
-      --no-color        Disable colored output.
-    
-      --dry-run         Run rsync in dry run mode. Providing this options also assumes --verbose.
-    
-      --log-to-file     Log output to a file located inside ~/.local/rsync-backup instead of to stdout.
-    
-      --exclude-file    An rsync exclude file, used to filter out files.
-    
-      --include-file    An rsync include file, used to include files, even if excluded.
-    
-      --help            Show this usage message and exit.
+- BACKUP_SERVER_IP - The IP address of the target server
+- BACKUP_IDENTIFIER - A unique id for the source device/server
+- BACKUP_SSH_USER - The SSH user on the target server
+- BACKUP_IDENT_FILE - The SSH key for SSH communication
+- BACKUP_PATHS - An array of paths to backup
 
-### Example usage
+Generally this script is used through the script created through the installation process. However, the following options can be provided as arguments to the script, however not all options will work as expected.
 
-Syncs my home directory to a drive mounted at `192.168.1.100:/Volumes/Data/Sync` using an include and exclude file.
+```
+Usage: backup.sh [options] <src, [src...]>
 
-    ./sync.sh \
-        -target /Volumes/Data/Sync \
-        --ssh-server 192.168.1.100 \
-        --include-file /home/mitmaro/.local/rsync-backup/include-list.lst \
-        --exclude-file /home/mitmaro/.local/rsync-backup/exclude-list.lst \
-        /home/mitmaro
+Options:
+  --target, -t      The directory on the target to copy files. (required)
 
-### Cron job
+  --ssh-server      The SSH server. (required)
 
-Run `crontab -e` and add a line similar to:
+  --identifier, -i  A unique identifier for this computer. Default: hostname
 
-    15 */4 * * * /path/to/backup/sync.sh --log-to-file -t /path/to/backup --ssh-server hostname --ssh-ident /path/to/ssh/key --include-file include-list.lst --exclude-file exclude-list.lst /path/to/sync
+  --ssh-port        The SSH connection port.
+
+  --ssh-user        The SSH user. Default: current user
+
+  --ssh-ident       The SSH key to use.
+
+  --verbose, -v     Show more verbose output of actions performed.
+
+  --no-color        Disable colored output.
+
+  --dry-run         Run rsync in dry run mode. Providing this options also assumes --verbose.
+
+  --log-to-file     Log output to a file located inside ~/.local/rsync-backup instead of to stdout.
+
+  --exclude-file    An rsync exclude file, used to filter out files.
+
+  --include-file    An rsync include file, used to include files, even if excluded.
+
+  --help            Show this usage message and exit.
+```
 
 ## Use case
 
-There are few cloud backup services that support Linux with had the features that I was looking for and for a decent
-price. I also really liked the offering that [Sync.com](https://www.sync.com/?_sync_refer=33cbaa0) offered.
-*(disclosure: contains referral link)* As a Canadian, Sync.com being a Canadian company was the biggest plus. They do
-not however offer a Linux client. I created this script to sync, via a cron job, the files from my Linux laptop to an
-external drive attached to an I had an old Apple laptop kicking around. The old laptop is running the Sync.com client
-and syncs my files to Sync.com.
-
-## FAQ
-
-#### Notifications not shown with cron.
-
-I've had luck with adding the following to the top of the crontab.
-
-    DISPLAY=:0.0
-    XAUTHORITY=/home/user/.Xauthority
+This script can be used to automatically back up a list of paths, generally useful in server environments. I use it to back up files from various Proxmox LXCs in my homelab.
 
 ## License
 
