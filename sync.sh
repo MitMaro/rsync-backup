@@ -30,13 +30,13 @@ fi
 
 self="$(basename "$0")"
 
-BACKUP_DATE=$(date '+%Y-%m-%d_%Hh%Mm%Ss')
+BACKUP_DATE="$(date '+%Y-%m-%d_%Hh%Mm%Ss')"
 APP_ROOT="${HOME}/.local/rsync-backup"
-LOG_FILE_PATH="$APP_ROOT/logs/backup-${BACKUP_DATE}.log"
+LOG_FILE_PATH="${APP_ROOT}/logs/backup-${BACKUP_DATE}.log"
 PRINT_USAGE=true
 RSYNC_DRY_RUN_ARGUMENTS='--dry-run --itemize-changes'
 RSYNC_VERBOSE_ARGUMENTS='--verbose'
-RSYNC_LOG_FILE_ARGUMENTS="--log-file='${LOG_FILE_PATH}'"
+RSYNC_LOG_FILE_ARGUMENTS="--log-file=${LOG_FILE_PATH}"
 RSYNC_RELATIVE_ARGUMENTS='--relative'
 
 # define variables
@@ -229,10 +229,14 @@ while (($#)); do
 	shift
 done
 
-# ensure APP_ROOT
-verbose_message "Ensuring that ${APP_ROOT} exists"
-mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
-mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
+if ${log_to_file}; then
+	# ensure APP_ROOT
+	verbose_message "Ensuring that ${APP_ROOT} exists"
+	mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
+	verbose_message "Ensuring that ${LOG_FILE_PATH} exists"
+	mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
+	touch "${LOG_FILE_PATH}" || error "Error creating ${LOG_FILE_PATH}"
+fi
 
 # check for required commands
 command -v rsync &> /dev/null \
@@ -282,7 +286,7 @@ command_sync() {
 	rsync \
 		${rsync_dry_run} \
 		${rsync_verbose} \
-		"${rsync_log_file}" \
+		${rsync_log_file} \
 		--progress \
 		--archive \
 		--compress \
