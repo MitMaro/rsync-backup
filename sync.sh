@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
-EXIT_CODE_GENERAL=1
 EXIT_CODE_INVALID_STATE=2
 EXIT_CODE_INVALID_ARGUMENT=3
-EXIT_CODE_INVALID_COMMAND=4
-EXIT_CODE_ABORT=5
 EXIT_CODE_INVALID_STATE=6
 
 reset_colors() {
@@ -15,7 +12,6 @@ reset_colors() {
 	C_INFO=''
 	C_WARNING=''
 	C_ERROR=''
-	C_STATUS=''
 }
 
 reset_colors
@@ -30,7 +26,6 @@ if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
 	C_VERBOSE="\033[0;36m"
 	C_WARNING="\033[1;33m"
 	C_ERROR="\033[0;31m"
-	C_STATUS="\033[1m"
 fi
 
 self="$(basename "$0")"
@@ -42,6 +37,7 @@ PRINT_USAGE=true
 RSYNC_DRY_RUN_ARGUMENTS='--dry-run --itemize-changes'
 RSYNC_VERBOSE_ARGUMENTS='--verbose'
 RSYNC_LOG_FILE_ARGUMENTS="--log-file='${LOG_FILE_PATH}'"
+RSYNC_RELATIVE_ARGUMENTS='--relative'
 
 # define variables
 index=1
@@ -85,6 +81,8 @@ usage() {
 	echo -e "  $(highlight "--no-color")        Disable colored output."
 	echo -e
 	echo -e "  $(highlight "--dry-run")         Run rsync in dry run mode. Providing this options also assumes $(highlight "--verbose")."
+	echo -e
+	echo -e "  $(highlight "--relative")        Run rsync using the --relative option, creating full paths on destination."
 	echo -e
 	echo -e "  $(highlight "--log-to-file")     Log output to a file located inside $(highlight "${APP_ROOT}") instead of to stdout."
 	echo -e
@@ -138,7 +136,7 @@ error() {
 		>&2 usage
 	fi
 
-	if [[ ! -z ${err} ]]; then
+	if [[ -n ${err} ]]; then
 		exit "$err"
 	fi
 }
@@ -148,21 +146,16 @@ argument_error() {
 }
 
 # check for required commands
-hash rsync 2> /dev/null \
+command -v rsync &> /dev/null \
 	|| error "rsync command wasn't found; please install and ensure it's on the PATH" ${EXIT_CODE_INVALID_STATE}
 
-hash ssh 2> /dev/null \
+command -v ssh &> /dev/null \
 	|| error "ssh command wasn't found; please install and ensure it's on the PATH" ${EXIT_CODE_INVALID_STATE}
-
-# ensure APP_ROOT
-verbose_message "Ensuring that ${APP_ROOT} exists"
-mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
-mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
 
 # print usage if nothing provided
 [[ "$#" -eq "0" ]] && usage && exit
 
-if hash notify-send 2> /dev/null; then
+if command -v notify-send &> /dev/null; then
 	notify=true
 fi
 
@@ -179,6 +172,9 @@ while (($#)); do
 		--dry-run)
 			verbose=true
 			rsync_dry_run=${RSYNC_DRY_RUN_ARGUMENTS}
+			;;
+		--relative)
+			rsync_relative=${RSYNC_RELATIVE_ARGUMENTS}
 			;;
 		--no-notify)
 			notify=false
@@ -262,19 +258,27 @@ done
 [[ -z "$target" ]] \
 	&& error "Must provide a remote target" ${EXIT_CODE_INVALID_ARGUMENT} ${PRINT_USAGE}
 
+# ensure APP_ROOT
+verbose_message "Ensuring that ${APP_ROOT} exists"
+mkdir -p "${APP_ROOT}" || error "Error creating ${APP_ROOT}"
+mkdir -p "${APP_ROOT}/logs" || error "Error creating ${APP_ROOT}/logs"
+
 # Create the connection string.
 ssh_connect="${ssh_user}@${ssh_server}"
 
 verbose_message "Checking SSH connection"
-ssh -q -o 'BatchMode=yes' -o 'ConnectTimeout 10' "${ssh_ident}" "${ssh_port}" "${ssh_connect}" exit > /dev/null \
+# shellcheck disable=SC2086
+ssh -q -o 'BatchMode=yes' -o 'ConnectTimeout 10' ${ssh_ident} ${ssh_port} ${ssh_connect} exit > /dev/null \
 	|| error "SSH connection to '${ssh_connect}' failed."
 
 verbose_message "Creating backup directory"
 # shellcheck disable=SC2029
-ssh "${ssh_ident}" "${ssh_port}" "${ssh_connect}" "mkdir -p ${target}/${identifier}" \
+# shellcheck disable=SC2086
+ssh ${ssh_ident} ${ssh_port} ${ssh_connect} "mkdir -p ${target}/${identifier}" \
 	|| error "Could not create ${target}/${identifier} on ${ssh_server}"
 
 command_sync() {
+	# shellcheck disable=SC2086
 	rsync \
 		${rsync_dry_run} \
 		${rsync_verbose} \
@@ -285,12 +289,14 @@ command_sync() {
 		--human-readable \
 		--delete \
 		--delete-excluded \
+		${rsync_relative} \
 		${rsync_include_file} \
 		${rsync_exclude_file} \
 		--rsh="ssh ${ssh_ident} ${ssh_port}" \
 		"${rsync_sources[@]}" \
 		"${ssh_connect}:${target}/${identifier}"
 
+	# shellcheck disable=SC2181
 	if [[ "$?" -eq "0" ]]; then
 		message "Sync complete"
 
