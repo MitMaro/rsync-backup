@@ -363,6 +363,7 @@ main() {
 	[[ -z "${BACKUP_SERVER_IP-}" ]] \
 		&& error "Empty BACKUP_SERVER_IP environment variable provided" ${EXIT_CODE_INVALID_ARGUMENT} false
 
+	TARGET="${BACKUP_TARGET:-/mnt/backups}"
 	SSH_USER="${BACKUP_SSH_USER:-root}"
 	IDENT_FILE="${BACKUP_IDENT_FILE:-"/root/.ssh/id_ed25519"}"
 	IDENTIFIER="$BACKUP_IDENTIFIER"
@@ -384,7 +385,7 @@ main() {
 
 	for path in "${BACKUP_PATHS[@]}"; do
 		if [[ -e "$path" ]]; then
-			sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target /root/backups/ "$@" "$path"
+			sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target "$TARGET" "$@" "$path"
 		fi
 	done
 }

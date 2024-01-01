@@ -36,6 +36,7 @@ git fetch origin && git reset --hard origin/master
 The following environment variables are available:
 
 - BACKUP_SERVER_IP - The IP address of the target server
+- BACKUP_TARGET - The target path on the target server
 - BACKUP_IDENTIFIER - A unique id for the source device/server
 - BACKUP_SSH_USER - The SSH user on the target server
 - BACKUP_IDENT_FILE - The SSH key for SSH communication
