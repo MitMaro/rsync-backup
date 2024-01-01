@@ -384,7 +384,7 @@ main() {
 
 	for path in "${BACKUP_PATHS[@]}"; do
 		if [[ -e "$path" ]]; then
-			sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target /root/backups/ "$@" "$p"
+			sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target /root/backups/ "$@" "$path"
 		fi
 	done
 }
