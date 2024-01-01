@@ -184,6 +184,11 @@ check_update() {
 		return
 	fi
 
+	if ! git -C "$git_root" diff --no-ext-diff --quiet --exit-code; then
+		message "Changes found in backup script, skipping update"
+		return
+	fi
+
 	current_hash="$(git -C "$git_root" rev-parse HEAD)"
 
 	git -C "$git_root" fetch origin 2> /dev/null
@@ -367,19 +372,20 @@ main() {
 		BACKUP_PATHS=()
 	fi
 
-	SCRIPT="$(realpath "$0")"
-	BACKUP_PATHS+=( "$SCRIPT" )
+	BACKUP_PATHS+=(
+		"$(realpath "$0")"
+		"$HOME/README.md"
+		"$HOME/.ssh"
+		"/etc/cron.d/backup"
+		"/etc/autofs.conf"
+		"/etc/auto.master.d"
+		/etc/auto.*
+	)
 
-	# backup README if it exists
-	if [[ -e "$HOME/README.md" ]]; then
-		BACKUP_PATHS+=( "$HOME/README.md" )
-	fi
-
-	BACKUP_PATHS+=( "$HOME/.ssh" )
-	BACKUP_PATHS+=( "/etc/cron.d/backup" )
-
-	for p in "${BACKUP_PATHS[@]}"; do
-		sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target /root/backups/ "$@" "$p"
+	for path in "${BACKUP_PATHS[@]}"; do
+		if [[ -e "$path" ]]; then
+			sync --verbose --relative --log-to-file --ssh-server "$IP" --identifier "$IDENTIFIER" --ssh-user "$SSH_USER" --ssh-ident "$IDENT_FILE" --target /root/backups/ "$@" "$p"
+		fi
 	done
 }
 
