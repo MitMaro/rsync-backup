@@ -328,6 +328,8 @@ sync() {
 		"${rsync_dry_run[@]}" \
 		"${rsync_verbose[@]}" \
 		"${rsync_log_file[@]}" \
+		--copy-links \
+		--copy-dirlinks \
 		--progress \
 		--archive \
 		--compress \
